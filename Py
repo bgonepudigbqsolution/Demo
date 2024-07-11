@@ -1,11 +1,12 @@
 import json
 import csv
+import re
 
 # Load the JSON data from file
 with open(r'C:\repo\json\PROD\PA.json') as json_file:
     jsondata = json.load(json_file)
 
-# Function to flatten JSON and get key-value pairs
+# Function to flatten JSON and get key-value pairs, removing array indices
 def flatten_json(json_obj, parent_key='', sep='.'):
     items = {}
     if isinstance(json_obj, dict):
@@ -15,28 +16,30 @@ def flatten_json(json_obj, parent_key='', sep='.'):
                 items.update(flatten_json(v, new_key, sep=sep))
             elif isinstance(v, list):
                 for i, item in enumerate(v):
-                    items.update(flatten_json(item, f"{new_key}[{i}]", sep=sep))
+                    items.update(flatten_json(item, new_key, sep=sep))
             else:
                 items[new_key] = v
     elif isinstance(json_obj, list):
         for i, item in enumerate(json_obj):
-            items.update(flatten_json(item, f"{parent_key}[{i}]", sep=sep))
+            items.update(flatten_json(item, parent_key, sep=sep))
     else:
         items[parent_key] = json_obj
     return items
+
+# Remove array indices from keys
+def clean_keys(items):
+    clean_items = {}
+    for key, value in items.items():
+        clean_key = re.sub(r'\[\d+\]', '', key)
+        clean_items[clean_key] = value
+    return clean_items
 
 # Ensure jsondata is a list
 if isinstance(jsondata, dict):
     jsondata = [jsondata]
 
-# Flatten each JSON entry
-flattened_data = []
-for entry in jsondata:
-    try:
-        flattened_data.append(flatten_json(entry))
-    except Exception as e:
-        print(f"Error processing entry: {entry}")
-        print(e)
+# Flatten and clean each JSON entry
+flattened_data = [clean_keys(flatten_json(entry)) for entry in jsondata]
 
 # Prepare to write CSV
 csv_file_path = r'C:\repo\json\PROD\PA.csv'
@@ -60,4 +63,4 @@ with open(csv_file_path, 'w', newline='') as data_file:
         row = [data.get(key, '') for key in all_keys]
         csv_writer.writerow(row)
 
-print(f"Data successfully written to {csv_file_path}") 
+print(f"Data successfully written to {csv_file_path}")
