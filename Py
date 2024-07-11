@@ -1,9 +1,10 @@
 import json
 import csv
 import re
+from datetime import datetime
 
 # Load the JSON data from file
-with open(r'C:\repo\json\PROD\PA.json') as json_file:
+with open(r'/mnt/data/PROD_PA.json') as json_file:
     jsondata = json.load(json_file)
 
 # Function to flatten JSON and get key-value pairs, removing array indices
@@ -16,7 +17,7 @@ def flatten_json(json_obj, parent_key='', sep='.'):
                 items.update(flatten_json(v, new_key, sep=sep))
             elif isinstance(v, list):
                 for i, item in enumerate(v):
-                    items.update(flatten_json(item, new_key, sep=sep))
+                    items.update(flatten_json(item, f"{new_key}[{i}]", sep=sep))
             else:
                 items[new_key] = v
     elif isinstance(json_obj, list):
@@ -39,10 +40,15 @@ if isinstance(jsondata, dict):
     jsondata = [jsondata]
 
 # Flatten and clean each JSON entry
-flattened_data = [clean_keys(flatten_json(entry)) for entry in jsondata]
+flattened_data = []
+for entry in jsondata:
+    flat_entry = flatten_json(entry)
+    clean_entry = clean_keys(flat_entry)
+    flattened_data.append(clean_entry)
 
-# Prepare to write CSV
-csv_file_path = r'C:\repo\json\PROD\PA.csv'
+# Generate timestamped filename
+timestamp = datetime.now().strftime('%Y%m%d_%H%M%S')
+csv_file_path = f'/mnt/data/PROD_PA_{timestamp}.csv'
 
 # Collect all unique keys
 all_keys = set()
