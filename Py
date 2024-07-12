@@ -8,21 +8,16 @@ with open(r'C:\repo\json\PROD\PA.json') as json_file:
     jsondata = json.load(json_file)
 
 # Function to flatten JSON and get key-value pairs
-def flatten_json(json_obj, parent_key='', sep='.'):
+def extract_key_values(json_obj, parent_key=''):
     items = {}
     if isinstance(json_obj, dict):
         for k, v in json_obj.items():
-            new_key = f"{parent_key}{sep}{k}" if parent_key else k
-            if isinstance(v, dict):
-                items.update(flatten_json(v, new_key, sep=sep))
-            elif isinstance(v, list):
-                for i, item in enumerate(v):
-                    items.update(flatten_json(item, f"{new_key}[{i}]", sep=sep))
-            else:
-                items[new_key] = v
+            new_key = f"{parent_key}.{k}" if parent_key else k
+            items.update(extract_key_values(v, new_key))
     elif isinstance(json_obj, list):
-        for i, item in enumerate(json_obj):
-            items.update(flatten_json(item, f"{parent_key}[{i}]", sep=sep))
+        for i, v in enumerate(json_obj):
+            new_key = f"{parent_key}[{i}]" if parent_key else str(i)
+            items.update(extract_key_values(v, new_key))
     else:
         items[parent_key] = json_obj
     return items
@@ -31,32 +26,26 @@ def flatten_json(json_obj, parent_key='', sep='.'):
 if isinstance(jsondata, dict):
     jsondata = [jsondata]
 
-# Flatten each JSON entry
-flattened_data = []
+# Extract key-value pairs from each JSON entry
+all_key_values = []
 for entry in jsondata:
-    try:
-        flattened_data.append(flatten_json(entry))
-    except Exception as e:
-        print(f"Error processing entry: {entry}")
-        print(e)
+    all_key_values.append(extract_key_values(entry))
 
-# Prepare to write CSV
+# Write to CSV
 timestamp = datetime.now().strftime('%Y%m%d_%H%M%S')
 csv_file_path = f'C:\\repo\\json\\PROD\\PA_{timestamp}.csv'
 
-# Collect all unique keys
-all_keys = set()
-for data in flattened_data:
-    all_keys.update(data.keys())
-all_keys = sorted(all_keys)  # Optional: sort keys alphabetically
+# Get all unique keys for the CSV header
+header_keys = set()
+for item in all_key_values:
+    header_keys.update(item.keys())
 
-# Write to CSV
+header_keys = sorted(header_keys)  # Sort headers for consistent column order
+
 with open(csv_file_path, 'w', newline='') as data_file:
-    csv_writer = csv.writer(data_file)
-    csv_writer.writerow(all_keys)  # Write the header
-    
-    for data in flattened_data:
-        row = [data.get(key, '') for key in all_keys]
-        csv_writer.writerow(row)
+    csv_writer = csv.DictWriter(data_file, fieldnames=header_keys)
+    csv_writer.writeheader()
+    for item in all_key_values:
+        csv_writer.writerow(item)
 
-print(f"Data successfully written to {csv_file_path}")he 
+print(f"Data successfully written to {csv_file_path}")
