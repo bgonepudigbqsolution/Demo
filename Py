@@ -3,11 +3,11 @@ import csv
 import re
 from datetime import datetime
 
-# Load the JSON data from the correct file path
+# Load the JSON data from file
 with open(r'C:\repo\json\PROD\PA.json') as json_file:
     jsondata = json.load(json_file)
 
-# Function to flatten JSON and get key-value pairs, removing array indices
+# Function to flatten JSON and get key-value pairs
 def flatten_json(json_obj, parent_key='', sep='.'):
     items = {}
     if isinstance(json_obj, dict):
@@ -22,31 +22,25 @@ def flatten_json(json_obj, parent_key='', sep='.'):
                 items[new_key] = v
     elif isinstance(json_obj, list):
         for i, item in enumerate(json_obj):
-            items.update(flatten_json(item, parent_key, sep=sep))
+            items.update(flatten_json(item, f"{parent_key}[{i}]", sep=sep))
     else:
         items[parent_key] = json_obj
     return items
-
-# Remove array indices from keys
-def clean_keys(items):
-    clean_items = {}
-    for key, value in items.items():
-        clean_key = re.sub(r'\[\d+\]', '', key)
-        clean_items[clean_key] = value
-    return clean_items
 
 # Ensure jsondata is a list
 if isinstance(jsondata, dict):
     jsondata = [jsondata]
 
-# Flatten and clean each JSON entry
+# Flatten each JSON entry
 flattened_data = []
 for entry in jsondata:
-    flat_entry = flatten_json(entry)
-    clean_entry = clean_keys(flat_entry)
-    flattened_data.append(clean_entry)
+    try:
+        flattened_data.append(flatten_json(entry))
+    except Exception as e:
+        print(f"Error processing entry: {entry}")
+        print(e)
 
-# Generate timestamped filename with safe characters
+# Prepare to write CSV
 timestamp = datetime.now().strftime('%Y%m%d_%H%M%S')
 csv_file_path = f'C:\\repo\\json\\PROD\\PA_{timestamp}.csv'
 
@@ -54,19 +48,15 @@ csv_file_path = f'C:\\repo\\json\\PROD\\PA_{timestamp}.csv'
 all_keys = set()
 for data in flattened_data:
     all_keys.update(data.keys())
-
 all_keys = sorted(all_keys)  # Optional: sort keys alphabetically
 
 # Write to CSV
 with open(csv_file_path, 'w', newline='') as data_file:
     csv_writer = csv.writer(data_file)
+    csv_writer.writerow(all_keys)  # Write the header
     
-    # Write the header
-    csv_writer.writerow(all_keys)
-    
-    # Write the data
     for data in flattened_data:
         row = [data.get(key, '') for key in all_keys]
         csv_writer.writerow(row)
 
-print(f"Data successfully written to {csv_file_path}")
+print(f"Data successfully written to {csv_file_path}")he 
