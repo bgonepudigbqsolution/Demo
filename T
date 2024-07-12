@@ -1,0 +1,24 @@
+import csv
+
+# Paths to the input CSV and the output CSV
+input_csv_path = 'C:\\repo\\json\\PROD\\PA_20240711_214257.csv'  # Update with your CSV file path
+output_csv_path = 'C:\\repo\\json\\PROD\\Transposed_Output.csv'  # Update with your desired output path
+
+# Read the CSV file and extract columns A and B
+columns_a_b = []
+with open(input_csv_path, newline='') as csvfile:
+    csvreader = csv.reader(csvfile)
+    for row in csvreader:
+        # Assuming columns A and B are the first two columns
+        columns_a_b.append(row[:2])
+
+# Transpose the columns
+transposed_data = list(zip(*columns_a_b))
+
+# Write the transposed data to a new CSV file
+with open(output_csv_path, 'w', newline='') as csvfile:
+    csvwriter = csv.writer(csvfile)
+    for row in transposed_data:
+        csvwriter.writerow(row)
+
+print(f"Transposed data successfully written to {output_csv_path}")
