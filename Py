@@ -3,8 +3,8 @@ import csv
 import re
 from datetime import datetime
 
-# Load the JSON data from file
-with open(r'/mnt/data/PROD_PA.json') as json_file:
+# Load the JSON data from the correct file path
+with open(r'C:\repo\json\PROD\PA.json') as json_file:
     jsondata = json.load(json_file)
 
 # Function to flatten JSON and get key-value pairs, removing array indices
@@ -46,9 +46,9 @@ for entry in jsondata:
     clean_entry = clean_keys(flat_entry)
     flattened_data.append(clean_entry)
 
-# Generate timestamped filename
+# Generate timestamped filename with safe characters
 timestamp = datetime.now().strftime('%Y%m%d_%H%M%S')
-csv_file_path = f'/mnt/data/PROD_PA_{timestamp}.csv'
+csv_file_path = f'C:\\repo\\json\\PROD\\PA_{timestamp}.csv'
 
 # Collect all unique keys
 all_keys = set()
