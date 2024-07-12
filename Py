@@ -8,44 +8,49 @@ with open(r'C:\repo\json\PROD\PA.json') as json_file:
     jsondata = json.load(json_file)
 
 # Function to flatten JSON and get key-value pairs
-def extract_key_values(json_obj, parent_key=''):
-    items = {}
-    if isinstance(json_obj, dict):
-        for k, v in json_obj.items():
-            new_key = f"{parent_key}.{k}" if parent_key else k
-            items.update(extract_key_values(v, new_key))
-    elif isinstance(json_obj, list):
-        for i, v in enumerate(json_obj):
-            new_key = f"{parent_key}[{i}]" if parent_key else str(i)
-            items.update(extract_key_values(v, new_key))
-    else:
-        items[parent_key] = json_obj
-    return items
+def extract_key_values(json_obj):
+    key_values = {}
+
+    def extract(obj, parent_key=''):
+        if isinstance(obj, dict):
+            for k, v in obj.items():
+                full_key = f"{parent_key}.{k}" if parent_key else k
+                extract(v, full_key)
+        elif isinstance(obj, list):
+            for i, item in enumerate(obj):
+                full_key = f"{parent_key}.{i}" if parent_key else str(i)
+                extract(item, full_key)
+        else:
+            key_values[parent_key] = obj
+
+    extract(json_obj)
+    return key_values
 
 # Ensure jsondata is a list
 if isinstance(jsondata, dict):
     jsondata = [jsondata]
 
-# Extract key-value pairs from each JSON entry
+# Extract key-value pairs from each JSON entry and collect all unique keys
 all_key_values = []
+all_keys = set()
 for entry in jsondata:
-    all_key_values.append(extract_key_values(entry))
+    key_values = extract_key_values(entry)
+    all_key_values.append(key_values)
+    all_keys.update(key_values.keys())
+
+all_keys = sorted(all_keys)  # Optional: sort keys for consistent column order
 
 # Write to CSV
 timestamp = datetime.now().strftime('%Y%m%d_%H%M%S')
 csv_file_path = f'C:\\repo\\json\\PROD\\PA_{timestamp}.csv'
 
-# Get all unique keys for the CSV header
-header_keys = set()
-for item in all_key_values:
-    header_keys.update(item.keys())
-
-header_keys = sorted(header_keys)  # Sort headers for consistent column order
-
 with open(csv_file_path, 'w', newline='') as data_file:
-    csv_writer = csv.DictWriter(data_file, fieldnames=header_keys)
-    csv_writer.writeheader()
-    for item in all_key_values:
-        csv_writer.writerow(item)
+    csv_writer = csv.writer(data_file)
+    # Write the header with all unique keys
+    csv_writer.writerow(all_keys)
+    # Write the key-value pairs for each JSON object
+    for key_values in all_key_values:
+        row = [key_values.get(key, '') for key in all_keys]
+        csv_writer.writerow(row)
 
 print(f"Data successfully written to {csv_file_path}")
