@@ -1,0 +1,14 @@
+# Define the server name and service name
+$serverName = "YourServerName"
+$serviceName = "YourServiceName"
+
+# Use Invoke-Command to check the service status on the remote server
+Invoke-Command -ComputerName $serverName -ScriptBlock {
+    param ($serviceName)
+    $service = Get-Service -Name $serviceName
+    if ($service.Status -eq 'Running') {
+        Write-Output "The service '$serviceName' is running on '$env:COMPUTERNAME'."
+    } else {
+        Write-Output "The service '$serviceName' is not running on '$env:COMPUTERNAME'. Current status: $($service.Status)"
+    }
+} -ArgumentList $serviceName
