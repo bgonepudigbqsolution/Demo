@@ -1,13 +1,11 @@
- 
-
 import json
-import csv
+import pandas as pd
 import re
 from datetime import datetime
 
 # Load the JSON data from the file
 json_file_path = r'C:\repo\json\PROD\PA.json'  # Update this path as needed
-output_csv_path = r'C:\repo\json\PROD\PA_output.csv'  # Update this path as needed
+output_excel_path = r'C:\repo\json\PROD\PA_output.xlsx'  # Update this path as needed
 
 with open(json_file_path) as json_file:
     jsondata = json.load(json_file)
@@ -40,21 +38,18 @@ for entry in jsondata:
     all_key_values.extend(extract_key_values(entry))
 
 # Clean headers and prepare data rows
-cleaned_headers = []
-data_rows = []
-
+cleaned_data = {}
 for key, value in all_key_values:
     cleaned_key = re.sub(r'^value\.0\.', '', key)
-    cleaned_headers.append(cleaned_key)
-    data_rows.append([value])
+    if cleaned_key in cleaned_data:
+        cleaned_data[cleaned_key].append(value)
+    else:
+        cleaned_data[cleaned_key] = [value]
 
-# Ensure headers are unique and maintain order
-unique_cleaned_headers = list(dict.fromkeys(cleaned_headers))
+# Convert the cleaned data to a pandas DataFrame
+df = pd.DataFrame.from_dict(cleaned_data, orient='index').transpose()
 
-with open(output_csv_path, 'w', newline='') as data_file:
-    csv_writer = csv.writer(data_file)
-    csv_writer.writerow(unique_cleaned_headers)  # Write headers
-    for row in data_rows:
-        csv_writer.writerow(row)
+# Write the DataFrame to an Excel file
+df.to_excel(output_excel_path, index=False)
 
-print(f"Data successfully written to {output_csv_path}")
+print(f"Data successfully written to {output_excel_path}")
