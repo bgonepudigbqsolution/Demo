@@ -1,27 +1,59 @@
-import csv
 import json
+import csv
+from datetime import datetime
 
 # Load the JSON data from the file
-with open(r'C:\repo\json\PROD\PA.json', 'r') as json_file:
+with open(r'C:\repo\json\PROD\PA.json') as json_file:
     jsondata = json.load(json_file)
 
-# Path to the output CSV file
-output_csv_path = r'C:\repo\json\PROD\new_transport_times.csv'
+# Function to flatten JSON and get key-value pairs
+def extract_key_values(json_obj):
+    key_values = []
 
-# Write the transposed data to a new CSV file
-with open(output_csv_path, 'w', newline='') as csvfile:
-    csvwriter = csv.writer(csvfile)
+    def extract(obj, parent_key=""):
+        if isinstance(obj, dict):
+            for k, v in obj.items():
+                full_key = f"{parent_key}.{k}" if parent_key else k
+                extract(v, full_key)
+        elif isinstance(obj, list):
+            for i, item in enumerate(obj):
+                extract(item, f"{parent_key}.{i}")
+        else:
+            key_values.append((parent_key, obj))
 
-    # Check if jsondata is a list of dictionaries
-    if isinstance(jsondata, list) and isinstance(jsondata[0], dict):
-        # Write the header
-        header = jsondata[0].keys()
-        csvwriter.writerow(header)
+    extract(json_obj)
+    return key_values
 
-        # Write the data rows
-        for row in jsondata:
-            csvwriter.writerow(row.values())
-    else:
-        print("JSON data format is not as expected.")
+# Ensure jsondata is a list
+if isinstance(jsondata, dict):
+    jsondata = [jsondata]
 
-print("JSON data has been converted to CSV successfully.")
+# Extract key-value pairs from each JSON entry
+all_key_values = []
+for entry in jsondata:
+    all_key_values.extend(extract_key_values(entry))
+
+# Write to CSV with headers and values below based on the number of records
+timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+output_csv_path = f'C:\\repo\\json\\PROD\\PA_{timestamp}.csv'
+
+# Clean headers and write to the final CSV file
+cleaned_headers = []
+data_rows = []
+
+# Extract headers and rows
+for key, value in all_key_values:
+    cleaned_key = key.replace("value.0.", "")
+    cleaned_headers.append(cleaned_key)
+    data_rows.append([value])
+
+# Ensure headers are unique by removing duplicates
+cleaned_headers = list(dict.fromkeys(cleaned_headers))
+
+with open(output_csv_path, 'w', newline='') as data_file:
+    csv_writer = csv.writer(data_file)
+    csv_writer.writerow(cleaned_headers)
+    for row in data_rows:
+        csv_writer.writerow(row)
+
+print(f"Data successfully written to {output_csv_path}")
