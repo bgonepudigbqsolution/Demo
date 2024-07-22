@@ -1,11 +1,11 @@
 import json
-import pandas as pd
+import csv
 import re
 from datetime import datetime
 
 # Load the JSON data from the file
 json_file_path = r'C:\repo\json\PROD\PA.json'  # Update this path as needed
-output_excel_path = r'C:\repo\json\PROD\PA_output.xlsx'  # Update this path as needed
+output_csv_path = r'C:\repo\json\PROD\PA_output.csv'  # Update this path as needed
 
 with open(json_file_path) as json_file:
     jsondata = json.load(json_file)
@@ -38,18 +38,38 @@ for entry in jsondata:
     all_key_values.extend(extract_key_values(entry))
 
 # Clean headers and prepare data rows
-cleaned_data = {}
+cleaned_headers = []
+data_rows = []
+
 for key, value in all_key_values:
     cleaned_key = re.sub(r'^value\.0\.', '', key)
-    if cleaned_key in cleaned_data:
-        cleaned_data[cleaned_key].append(value)
-    else:
-        cleaned_data[cleaned_key] = [value]
+    cleaned_headers.append(cleaned_key)
+    data_rows.append(value)
 
-# Convert the cleaned data to a pandas DataFrame
-df = pd.DataFrame.from_dict(cleaned_data, orient='index').transpose()
+# Ensure headers are unique and maintain order
+unique_cleaned_headers = list(dict.fromkeys(cleaned_headers))
 
-# Write the DataFrame to an Excel file
-df.to_excel(output_excel_path, index=False)
+# Group data rows by unique headers
+data_dict = {header: [] for header in unique_cleaned_headers}
+for key, value in zip(cleaned_headers, data_rows):
+    data_dict[key].append(value)
 
-print(f"Data successfully written to {output_excel_path}")
+# Find the maximum number of values for any header to ensure all rows are the same length
+max_length = max(len(values) for values in data_dict.values())
+
+# Pad all lists to the maximum length with empty strings
+for key in data_dict:
+    data_dict[key] += [""] * (max_length - len(data_dict[key]))
+
+# Write to CSV
+with open(output_csv_path, 'w', newline='') as data_file:
+    csv_writer = csv.writer(data_file)
+    
+    # Write headers
+    csv_writer.writerow(unique_cleaned_headers)
+    
+    # Write rows
+    for row in zip(*data_dict.values()):
+        csv_writer.writerow(row)
+
+print(f"Data successfully written to {output_csv_path}")
