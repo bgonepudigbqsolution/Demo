@@ -7,11 +7,15 @@ Sub ConvertJSONtoCSV()
     Dim jsonObject As Object
     Dim jsonItems As Collection
     Dim jsonItem As Object
+    Dim key As Variant
     Dim header As Collection
     Dim dataRows As Collection
     Dim headerNames() As String
     Dim i As Integer, j As Integer
     Dim csvContent As String
+    Dim row As Collection
+    Dim dataRow As Collection
+    Dim rowData() As String
     
     ' File paths
     jsonFilePath = "C:\repo\json\PROD\PA.json" ' Update this path
@@ -44,9 +48,11 @@ Sub ConvertJSONtoCSV()
         Next key
         
         ' Create a collection for the row
-        Dim row As New Collection
+        Set row = New Collection
         For Each key In header
+            On Error Resume Next
             row.Add IIf(IsMissing(jsonItem(key)), "", jsonItem(key))
+            On Error GoTo 0
         Next key
         dataRows.Add row
     Next jsonItem
@@ -60,10 +66,8 @@ Sub ConvertJSONtoCSV()
     csvContent = Join(headerNames, ",") & vbCrLf
     
     For i = 1 To dataRows.Count
-        Dim dataRow As Collection
         Set dataRow = dataRows(i)
         
-        Dim rowData() As String
         ReDim rowData(dataRow.Count - 1)
         
         For j = 1 To dataRow.Count
