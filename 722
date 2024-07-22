@@ -3,7 +3,10 @@ import csv
 from datetime import datetime
 
 # Load the JSON data from the file
-with open(r'C:\repo\json\PROD\PA.json') as json_file:
+json_file_path = r'C:\repo\json\PROD\PA.json'  # Update this path as needed
+output_csv_path = r'C:\repo\json\PROD\PA_output.csv'  # Update this path as needed
+
+with open(json_file_path) as json_file:
     jsondata = json.load(json_file)
 
 # Function to flatten JSON and get key-value pairs
@@ -33,26 +36,22 @@ all_key_values = []
 for entry in jsondata:
     all_key_values.extend(extract_key_values(entry))
 
-# Write to CSV with headers and values below based on the number of records
-timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
-output_csv_path = f'C:\\repo\\json\\PROD\\PA_{timestamp}.csv'
-
-# Clean headers and write to the final CSV file
+# Clean headers and prepare data rows
 cleaned_headers = []
 data_rows = []
 
-# Extract headers and rows
 for key, value in all_key_values:
-    cleaned_key = key.replace("value.0.", "")
+    cleaned_key = re.sub(r'^value\.0\.', '', key)
     cleaned_headers.append(cleaned_key)
     data_rows.append([value])
 
-# Ensure headers are unique by removing duplicates
-cleaned_headers = list(dict.fromkeys(cleaned_headers))
+# Ensure headers are unique and maintain order
+unique_cleaned_headers = list(dict.fromkeys(cleaned_headers))
 
+# Write the cleaned data to the CSV file
 with open(output_csv_path, 'w', newline='') as data_file:
     csv_writer = csv.writer(data_file)
-    csv_writer.writerow(cleaned_headers)
+    csv_writer.writerow(unique_cleaned_headers)  # Write headers
     for row in data_rows:
         csv_writer.writerow(row)
 
