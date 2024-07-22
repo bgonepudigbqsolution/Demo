@@ -1,5 +1,8 @@
+ 
+
 import json
 import csv
+import re
 from datetime import datetime
 
 # Load the JSON data from the file
@@ -48,7 +51,6 @@ for key, value in all_key_values:
 # Ensure headers are unique and maintain order
 unique_cleaned_headers = list(dict.fromkeys(cleaned_headers))
 
-# Write the cleaned data to the CSV file
 with open(output_csv_path, 'w', newline='') as data_file:
     csv_writer = csv.writer(data_file)
     csv_writer.writerow(unique_cleaned_headers)  # Write headers
