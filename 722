@@ -1,0 +1,27 @@
+import csv
+import json
+
+# Load the JSON data from the file
+with open(r'C:\repo\json\PROD\PA.json', 'r') as json_file:
+    jsondata = json.load(json_file)
+
+# Path to the output CSV file
+output_csv_path = r'C:\repo\json\PROD\new_transport_times.csv'
+
+# Write the transposed data to a new CSV file
+with open(output_csv_path, 'w', newline='') as csvfile:
+    csvwriter = csv.writer(csvfile)
+
+    # Check if jsondata is a list of dictionaries
+    if isinstance(jsondata, list) and isinstance(jsondata[0], dict):
+        # Write the header
+        header = jsondata[0].keys()
+        csvwriter.writerow(header)
+
+        # Write the data rows
+        for row in jsondata:
+            csvwriter.writerow(row.values())
+    else:
+        print("JSON data format is not as expected.")
+
+print("JSON data has been converted to CSV successfully.")
