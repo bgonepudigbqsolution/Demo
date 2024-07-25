@@ -1,0 +1,35 @@
+param (
+    [string]$excelFilePath,
+    [string]$csvFilePath
+)
+
+if (-not (Test-Path $excelFilePath)) {
+    Write-Host "The specified Excel file does not exist: $excelFilePath"
+    exit
+}
+
+# Create an instance of the Excel application
+$excel = New-Object -ComObject Excel.Application
+
+try {
+    # Open the Excel file
+    $workbook = $excel.Workbooks.Open($excelFilePath)
+
+    # Save the Excel file as a CSV file
+    $workbook.SaveAs($csvFilePath, 6)  # 6 is the code for CSV format
+
+    Write-Host "Excel file has been successfully converted to CSV: $csvFilePath"
+} catch {
+    Write-Host "An error occurred: $_"
+} finally {
+    # Close the workbook and quit Excel
+    $workbook.Close($false)
+    $excel.Quit()
+
+    # Release the COM objects
+    [System.Runtime.Interopservices.Marshal]::ReleaseComObject($workbook) | Out-Null
+    [System.Runtime.Interopservices.Marshal]::ReleaseComObject($excel) | Out-Null
+
+    # Clean up the variables
+    Remove-Variable excel, workbook
+}
