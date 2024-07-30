@@ -1,102 +1,54 @@
-Option Explicit
+import json
+import csv
+import re
+from datetime import datetime
 
-Sub ConvertJSONtoCSV()
-    Dim jsonFilePath As String
-    Dim csvFilePath As String
-    Dim jsonFileContent As String
-    Dim jsonObject As Object
-    Dim jsonItems As Collection
-    Dim jsonItem As Object
-    Dim key As Variant
-    Dim header As Collection
-    Dim dataRows As Collection
-    Dim headerNames() As String
-    Dim i As Integer, j As Integer
-    Dim csvContent As String
-    Dim row As Collection
-    Dim dataRow As Collection
-    Dim rowData() As String
-    
-    ' File paths
-    jsonFilePath = "C:\repo\json\PROD\PA.json" ' Update this path
-    csvFilePath = "C:\repo\json\PROD\PA_output.csv" ' Update this path
-    
-    ' Read JSON file content
-    jsonFileContent = GetFileContent(jsonFilePath)
-    
-    ' Parse JSON content
-    Set jsonObject = JsonConverter.ParseJson(jsonFileContent)
-    
-    ' Assuming JSON data is a collection of objects
-    If TypeName(jsonObject) = "Collection" Then
-        Set jsonItems = jsonObject
-    Else
-        MsgBox "Unexpected JSON format", vbExclamation
-        Exit Sub
-    End If
-    
-    ' Initialize header and data rows collections
-    Set header = New Collection
-    Set dataRows = New Collection
-    
-    ' Extract headers and data rows
-    For Each jsonItem In jsonItems
-        For Each key In jsonItem.Keys
-            On Error Resume Next
-            header.Add key, key
-            On Error GoTo 0
-        Next key
-        
-        ' Create a collection for the row
-        Set row = New Collection
-        For Each key In header
-            On Error Resume Next
-            row.Add IIf(IsMissing(jsonItem(key)), "", jsonItem(key))
-            On Error GoTo 0
-        Next key
-        dataRows.Add row
-    Next jsonItem
-    
-    ' Create CSV content
-    ReDim headerNames(header.Count - 1)
-    For i = 1 To header.Count
-        headerNames(i - 1) = header(i)
-    Next i
-    
-    csvContent = Join(headerNames, ",") & vbCrLf
-    
-    For i = 1 To dataRows.Count
-        Set dataRow = dataRows(i)
-        
-        ReDim rowData(dataRow.Count - 1)
-        
-        For j = 1 To dataRow.Count
-            rowData(j - 1) = dataRow(j)
-        Next j
-        
-        csvContent = csvContent & Join(rowData, ",") & vbCrLf
-    Next i
-    
-    ' Write CSV content to file
-    SaveFileContent csvFilePath, csvContent
-    
-    MsgBox "Data successfully written to " & csvFilePath
-End Sub
+# File paths
+json_file_path = r'C:\repo\json\PROD\PA.json'  # Replace with your JSON file path
+output_csv_path = r'C:\repo\json\PROD\PA_output.csv'  # Replace with your desired output CSV file path
 
-Function GetFileContent(filePath As String) As String
-    Dim fileContent As String
-    Dim fileNum As Integer
-    fileNum = FreeFile
-    Open filePath For Input As fileNum
-    fileContent = Input$(LOF(fileNum), fileNum)
-    Close fileNum
-    GetFileContent = fileContent
-End Function
+# Load JSON data
+try:
+    with open(json_file_path) as json_file:
+        json_data = json.load(json_file)
+except FileNotFoundError:
+    print(f"File not found: {json_file_path}")
+    exit(1)
+except json.JSONDecodeError:
+    print(f"Error decoding JSON from file: {json_file_path}")
+    exit(1)
 
-Sub SaveFileContent(filePath As String, content As String)
-    Dim fileNum As Integer
-    fileNum = FreeFile
-    Open filePath For Output As fileNum
-    Print #fileNum, content
-    Close fileNum
-End Sub
+# Function to flatten JSON and extract key-value pairs
+def extract(obj, parent_key=""):
+    key_values = []
+    if isinstance(obj, dict):
+        for k, v in obj.items():
+            full_key = f"{parent_key}.{k}" if parent_key else k
+            key_values.extend(extract(v, full_key))
+    elif isinstance(obj, list):
+        for i, item in enumerate(obj):
+            full_key = f"{parent_key}[{i}]"
+            key_values.extend(extract(item, full_key))
+    else:
+        key_values.append((parent_key, obj))
+    return key_values
+
+# Extract data from JSON and write to CSV
+flat_data = extract(json_data)
+
+# Get the unique headers
+headers = sorted(set(key for key, _ in flat_data))
+
+# Write to CSV
+with open(output_csv_path, mode='w', newline='', encoding='utf-8') as csv_file:
+    writer = csv.writer(csv_file)
+    writer.writerow(headers)
+    
+    # Write the values row-wise
+    row = []
+    for header in headers:
+        value = next((v for k, v in flat_data if k == header), "")
+        row.append(value)
+    writer.writerow(row)
+
+print(f"CSV file saved at: {output_csv_path}")
