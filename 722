@@ -18,25 +18,26 @@ except json.JSONDecodeError:
     exit(1)
 
 # Function to flatten JSON and handle nested lists
-def flatten_json(obj, parent_key='', sep='.'):
-    items = []
-    if isinstance(obj, dict):
-        for k, v in obj.items():
-            new_key = f'{parent_key}{sep}{k}' if parent_key else k
-            items.extend(flatten_json(v, new_key, sep=sep).items())
-    elif isinstance(obj, list):
-        for i, v in enumerate(obj):
-            new_key = f'{parent_key}{sep}{i}' if parent_key else str(i)
-            items.extend(flatten_json(v, new_key, sep=sep).items())
-    else:
-        items.append((parent_key, obj))
-    return dict(items)
+def flatten_json(y):
+    out = {}
+
+    def flatten(x, name=''):
+        if type(x) is dict:
+            for a in x:
+                flatten(x[a], name + a + '.')
+        elif type(x) is list:
+            for i, a in enumerate(x):
+                flatten(a, name + str(i) + '.')
+        else:
+            out[name[:-1]] = x
+
+    flatten(y)
+    return out
 
 # Function to handle nested lists and expand them into separate rows
-def expand_nested(data):
+def expand_rows(data):
     all_rows = []
     base_row = {}
-    
     for key, value in data.items():
         if isinstance(value, list):
             for item in value:
@@ -45,17 +46,15 @@ def expand_nested(data):
                 all_rows.append(row)
         else:
             base_row[key] = value
-    
     if not all_rows:
         all_rows.append(base_row)
-    
     return all_rows
 
 # Process each entry in the JSON data
 processed_data = []
 for entry in json_data:
     flat_entry = flatten_json(entry)
-    expanded_rows = expand_nested(flat_entry)
+    expanded_rows = expand_rows(flat_entry)
     processed_data.extend(expanded_rows)
 
 # Extract headers from the processed data
