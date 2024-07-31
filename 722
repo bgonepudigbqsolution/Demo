@@ -1,7 +1,5 @@
 import json
 import csv
-import re
-from datetime import datetime
 import copy
 
 # File paths
@@ -19,22 +17,22 @@ except json.JSONDecodeError:
     print(f"Error decoding JSON from file: {json_file_path}")
     exit(1)
 
-# Function to flatten JSON and extract key-value pairs
-def extract(obj, parent_key=""):
-    key_values = []
+# Function to flatten JSON and handle nested lists
+def flatten_json(obj, parent_key='', sep='.'):
+    items = []
     if isinstance(obj, dict):
         for k, v in obj.items():
-            full_key = f"{parent_key}.{k}" if parent_key else k
-            key_values.extend(extract(v, full_key))
+            new_key = f'{parent_key}{sep}{k}' if parent_key else k
+            items.extend(flatten_json(v, new_key, sep=sep).items())
     elif isinstance(obj, list):
-        for i, item in enumerate(obj):
-            full_key = f"{parent_key}.{i}"
-            key_values.extend(extract(item, full_key))
+        for i, v in enumerate(obj):
+            new_key = f'{parent_key}{sep}{i}' if parent_key else str(i)
+            items.extend(flatten_json(v, new_key, sep=sep).items())
     else:
-        key_values.append((parent_key, obj))
-    return key_values
+        items.append((parent_key, obj))
+    return dict(items)
 
-# Function to expand rows for nested lists
+# Function to handle nested lists and expand them into separate rows
 def expand_nested(data):
     all_rows = []
     base_row = {}
@@ -43,7 +41,7 @@ def expand_nested(data):
         if isinstance(value, list):
             for item in value:
                 row = copy.deepcopy(base_row)
-                row.update(dict(extract({key: item})))
+                row.update(flatten_json({key: item}))
                 all_rows.append(row)
         else:
             base_row[key] = value
@@ -53,53 +51,22 @@ def expand_nested(data):
     
     return all_rows
 
-# Ensure jsondata is a list
-if isinstance(json_data, dict):
-    json_data = [json_data]
-
-# Extract key-value pairs from each JSON entry and expand nested lists
-all_key_values = []
+# Process each entry in the JSON data
+processed_data = []
 for entry in json_data:
-    flat_entry = dict(extract(entry))
+    flat_entry = flatten_json(entry)
     expanded_rows = expand_nested(flat_entry)
-    all_key_values.extend(expanded_rows)
+    processed_data.extend(expanded_rows)
 
-# Clean headers and prepare data rows
-cleaned_headers = []
-data_rows = []
-
-for row in all_key_values:
-    for key, value in row.items():
-        cleaned_key = re.sub(r"value\.\d+\.", "", key)
-        if cleaned_key not in cleaned_headers:
-            cleaned_headers.append(cleaned_key)
-        data_rows.append(row)
-
-# Ensure headers are unique and maintain order
-unique_cleaned_headers = list(dict.fromkeys(cleaned_headers))
-
-# Group data rows by unique headers
-data_dict = {header: [] for header in unique_cleaned_headers}
-
-for row in data_rows:
-    for key, value in row.items():
-        cleaned_key = re.sub(r"value\.\d+\.", "", key)
-        data_dict[cleaned_key].append(value)
-
-# Ensure each list in data_dict has the same length
-max_length = max(len(values) for values in data_dict.values())
-
-for key in data_dict:
-    while len(data_dict[key]) < max_length:
-        data_dict[key].append("")
+# Extract headers from the processed data
+headers = sorted({key for row in processed_data for key in row.keys()})
 
 # Write to CSV
 try:
     with open(output_csv_path, 'w', newline='', encoding='utf-8') as csvfile:
-        writer = csv.writer(csvfile)
-        writer.writerow(unique_cleaned_headers)
-        for i in range(max_length):
-            row = [data_dict[header][i] for header in unique_cleaned_headers]
+        writer = csv.DictWriter(csvfile, fieldnames=headers)
+        writer.writeheader()
+        for row in processed_data:
             writer.writerow(row)
     print(f"Data successfully written to {output_csv_path}")
 except IOError:
