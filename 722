@@ -17,7 +17,7 @@ except json.JSONDecodeError:
     print(f"Error decoding JSON from file: {json_file_path}")
     exit(1)
 
-# Function to flatten JSON, preserving lists as individual rows
+# Function to flatten JSON and handle nested lists
 def flatten_json(y):
     out = {}
 
@@ -40,6 +40,7 @@ def flatten_json(y):
 def expand_nested(data):
     all_rows = []
     base_row = {}
+    
     for key, value in data.items():
         if isinstance(value, list):
             for item in value:
@@ -48,8 +49,10 @@ def expand_nested(data):
                 all_rows.append(row)
         else:
             base_row[key] = value
+    
     if not all_rows:
         all_rows.append(base_row)
+    
     return all_rows
 
 # Process each entry in the JSON data
